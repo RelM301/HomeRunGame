@@ -3,21 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <title>ファミコン風野球ゲーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <style>
-    body {
+    html, body {
       margin: 0;
-      overflow: hidden;
+      padding: 0;
       background-color: black;
       font-family: sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
     }
+
+    #gameWrapper {
+      width: 1200px;
+      height: 600px;
+      transform-origin: top left;
+      position: relative;
+    }
+
     #gameCanvas {
       display: block;
-      margin: 0 auto;
       background: url('stadio.png') no-repeat center center;
       background-size: 100% 100%;
       width: 1200px;
       height: 600px;
     }
+
     #titleText {
       position: absolute;
       top: 10px;
@@ -29,6 +41,7 @@
       text-shadow: 2px 2px 4px black;
       z-index: 2;
     }
+
     #resultMessage, #finalOptions {
       position: absolute;
       width: 100%;
@@ -36,12 +49,14 @@
       color: white;
       display: none;
     }
+
     #resultMessage {
-      top: 40%;
+      top: 50%;
       transform: translateY(-50%);
       font-size: 4em;
       font-weight: bold;
     }
+
     #finalOptions {
       background-color: rgba(255, 255, 255, 0.95);
       border: 2px solid white;
@@ -53,17 +68,20 @@
       left: 50%;
       transform: translate(-50%, -50%);
     }
+
     #finalOptions div {
+      display: block;
       margin: 20px 0;
       cursor: pointer;
       text-decoration: underline;
-      font-size: 2.5em;
+      font-size: 2em;
       font-weight: bold;
     }
+
     #socialLinks {
       position: absolute;
-      bottom: 201px;
-      left: 1150px;
+      bottom: 10px;
+      left: 1000px;
       z-index: 2;
       display: flex;
       align-items: center;
@@ -71,16 +89,18 @@
       padding: 10px;
       border-radius: 10px;
     }
+
     .social-icon {
-      width: 45px;
-      height: 45px;
-      margin-right: 10px;
+      width: 67.5px;
+      height: 67.5px;
+      margin-right: 15px;
       cursor: pointer;
     }
+
     #scoreBoard {
       position: absolute;
       top: 200px;
-      left: 600px;
+      left: 500px;
       font-size: 1.5em;
       color: white;
       text-shadow: 1px 1px 2px black;
@@ -88,21 +108,39 @@
   </style>
 </head>
 <body>
-<div id="titleText"></div>
-<div id="scoreBoard">1球中 0回ホームラン</div>
-<canvas id="gameCanvas" width="1200" height="600"></canvas>
-<div id="resultMessage"></div>
-<div id="finalOptions">
-  <div id="restart">もう一度遊ぶ</div>
-  <div id="survey" onclick="window.location.href='https://docs.google.com/forms/d/e/1FAIpQLSfwHHjUxu5-hT0fZp-ytlxkiL9FlSQ6yV1TNJ4OYj3mIDkQBg/viewform?usp=dialog'">アンケートに回答</div>
+<div id="scaleContainer">
+  <div id="gameWrapper">
+    <div id="titleText"></div>
+    <div id="scoreBoard">1球中 0回ホームラン</div>
+    <canvas id="gameCanvas" width="1200" height="600"></canvas>
+    <div id="resultMessage"></div>
+    <div id="finalOptions">
+      <div id="restart">もう一度遊ぶ</div>
+      <div id="survey" onclick="window.location.href='https://docs.google.com/forms/d/e/1FAIpQLSfwHHjUxu5-hT0fZp-ytlxkiL9FlSQ6yV1TNJ4OYj3mIDkQBg/viewform?usp=dialog'">アンケートに回答</div>
+    </div>
+    <div id="socialLinks">
+      <img src="instagram.png" class="social-icon" onclick="window.open('https://www.instagram.com/betsukaipilotspirits/', '_blank')">
+      <img src="x.png" class="social-icon" onclick="window.open('https://x.com/BetsukaiP96674', '_blank')">
+    </div>
+  </div>
 </div>
-<div id="socialLinks">
-  <img src="instagram.png" class="social-icon" onclick="window.open('https://www.instagram.com/happyhirito/', '_blank')">
-  <img src="x.png" class="social-icon" onclick="window.open('https://x.com/home', '_blank')">
-</div>
+
 <audio id="crowdSound" src="BGM.mp3" loop></audio>
 <audio id="hitSound" src="ヒット音.mp3"></audio>
+
 <script>
+  function adjustScale() {
+    const wrapper = document.getElementById('gameWrapper');
+    const scaleX = window.innerWidth / 1200;
+    const scaleY = window.innerHeight / 600;
+    const scale = Math.min(scaleX, scaleY);
+    wrapper.style.transform = `scale(${scale})`;
+  }
+
+  window.addEventListener('resize', adjustScale);
+  window.addEventListener('orientationchange', adjustScale);
+  window.addEventListener('load', adjustScale);
+
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
@@ -134,8 +172,8 @@
         score++;
         updateScore();
         showMessage('ホームラン！');
-        ball.vx = 17; // 1.5倍の速さに変更
-        ball.vy = -3;
+        ball.vx = 17;
+        ball.vy = -8;
         hitSound.currentTime = 0;
         hitSound.play();
         ball.hit = true;
@@ -212,10 +250,10 @@
   function pitchBall() {
     if (pitches >= maxPitches) return;
     pitching = true;
-    const speed = -(8 + Math.random() * 6);
+    const speed = -(8 + Math.random() * 12);
     ball = {
       x: pitcherX,
-      y: pitcherY + 120, // 高さを8個分（64px）下げて投げる
+      y: pitcherY + 120,
       vx: speed,
       vy: 0,
       speedBoosted: false,
