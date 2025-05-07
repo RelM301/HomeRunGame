@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ファミコン風野球ゲーム</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
+      font-family: sans-serif;
+    }
+    #gameCanvas {
+      display: block;
+      margin: 0 auto;
+      background: url('スタジアム.png') no-repeat center center;
+      background-size: 100% 100%;
+      width: 1200px;
+      height: 600px;
+    }
+    #titleText {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-size: 2em;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px black;
+      z-index: 2;
+    }
+    #resultMessage, #finalOptions {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      color: white;
+      display: none;
+    }
+    #resultMessage {
+      top: 40%;
+      transform: translateY(-50%);
+      font-size: 4em;
+      font-weight: bold;
+    }
+    #finalOptions {
+      background-color: rgba(255, 255, 255, 0.95);
+      border: 2px solid white;
+      width: 300px;
+      padding: 20px;
+      border-radius: 10px;
+      color: black;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #finalOptions div {
+      margin: 20px 0;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 2.5em;
+      font-weight: bold;
+    }
+    #socialLinks {
+      position: absolute;
+      bottom: 201px;
+      left: 1150px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .social-icon {
+      width: 45px;
+      height: 45px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    #scoreBoard {
+      position: absolute;
+      top: 200px;
+      left: 600px;
+      font-size: 1.5em;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+  </style>
+</head>
+<body>
+<div id="titleText"></div>
+<div id="scoreBoard">1球中 0回ホームラン</div>
+<canvas id="gameCanvas" width="1200" height="600"></canvas>
+<div id="resultMessage"></div>
+<div id="finalOptions">
+  <div id="restart">もう一度遊ぶ</div>
+  <div id="survey" onclick="window.location.href='https://docs.google.com/forms/d/e/1FAIpQLSfwHHjUxu5-hT0fZp-ytlxkiL9FlSQ6yV1TNJ4OYj3mIDkQBg/viewform?usp=dialog'">アンケートに回答</div>
+</div>
+<div id="socialLinks">
+  <img src="instagram.png" class="social-icon" onclick="window.open('https://www.instagram.com/happyhirito/', '_blank')">
+  <img src="x.png" class="social-icon" onclick="window.open('https://x.com/home', '_blank')">
+</div>
+<audio id="crowdSound" src="BGM.mp3" loop></audio>
+<audio id="hitSound" src="ヒット音.mp3"></audio>
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const batter1 = new Image(); batter1.src = 'バッター1.png';
+  const batter2 = new Image(); batter2.src = 'バッター2.png';
+  const pitcher1 = new Image(); pitcher1.src = 'ピッチャー1.png';
+  const pitcher2 = new Image(); pitcher2.src = 'ピッチャー2.png';
+
+  let batterX = 0;
+  let batterY = 240;
+  let pitcherX = 950;
+  let pitcherY = 240;
+  let playerSwinging = false;
+  let pitching = false;
+  let ball = null;
+  let score = 0;
+  let pitches = 0;
+  const maxPitches = 5;
+
+  const hitSound = document.getElementById('hitSound');
+  const crowdSound = document.getElementById('crowdSound');
+
+  function swingBat() {
+    crowdSound.play().catch(() => {});
+    if (ball && !playerSwinging) {
+      playerSwinging = true;
+      setTimeout(() => playerSwinging = false, 300);
+      if (ball.x < batterX + 125 && ball.x > batterX - 20 && ball.y > batterY && ball.y < batterY + 150) {
+        score++;
+        updateScore();
+        showMessage('ホームラン！');
+        ball.vx = 17; // 1.5倍の速さに変更
+        ball.vy = -3;
+        hitSound.currentTime = 0;
+        hitSound.play();
+        ball.hit = true;
+        setTimeout(() => {
+          pitches++;
+          updateScore();
+          if (pitches >= maxPitches) {
+            endGame();
+          } else {
+            pitchBall();
+          }
+        }, 2000);
+      } else {
+        showMessage('ストライク！');
+        ball = null;
+        pitches++;
+        updateScore();
+        if (pitches >= maxPitches) {
+          setTimeout(endGame, 2000);
+        } else {
+          setTimeout(() => pitchBall(), 2000);
+        }
+      }
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      swingBat();
+    }
+  });
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    swingBat();
+  });
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(pitching ? pitcher2 : pitcher1, pitcherX, pitcherY, 250, 250);
+    ctx.drawImage(playerSwinging ? batter2 : batter1, batterX, batterY, 250, 250);
+
+    if (ball) {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.closePath();
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if (!ball.speedBoosted && ball.x < 300) {
+        ball.vx *= 1.5;
+        ball.speedBoosted = true;
+      }
+
+      if (ball.x < 0 && !ball.hit) {
+        showMessage('ストライク！');
+        ball = null;
+        pitches++;
+        updateScore();
+        if (pitches >= maxPitches) {
+          setTimeout(endGame, 2000);
+        } else {
+          setTimeout(() => pitchBall(), 2000);
+        }
+      }
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  function pitchBall() {
+    if (pitches >= maxPitches) return;
+    pitching = true;
+    const speed = -(8 + Math.random() * 6);
+    ball = {
+      x: pitcherX,
+      y: pitcherY + 120, // 高さを8個分（64px）下げて投げる
+      vx: speed,
+      vy: 0,
+      speedBoosted: false,
+      hit: false
+    };
+    setTimeout(() => pitching = false, 300);
+  }
+
+  function showMessage(text) {
+    const msg = document.getElementById('resultMessage');
+    msg.textContent = text;
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 1500);
+  }
+
+  function endGame() {
+    const msg = document.getElementById('resultMessage');
+    msg.textContent = '試合終了！';
+    msg.style.display = 'block';
+    setTimeout(() => {
+      msg.style.display = 'none';
+      document.getElementById('finalOptions').style.display = 'block';
+    }, 3000);
+  }
+
+  function resetGame() {
+    score = 0;
+    pitches = 0;
+    document.getElementById('finalOptions').style.display = 'none';
+    updateScore();
+    setTimeout(() => pitchBall(), 1000);
+  }
+
+  function updateScore() {
+    const currentPitch = Math.min(pitches + 1, maxPitches);
+    document.getElementById('scoreBoard').textContent = `${currentPitch}球中 ${score}回ホームラン`;
+  }
+
+  document.getElementById('restart').addEventListener('click', resetGame);
+
+  draw();
+  setTimeout(() => pitchBall(), 1000);
+</script>
+</body>
+</html>
